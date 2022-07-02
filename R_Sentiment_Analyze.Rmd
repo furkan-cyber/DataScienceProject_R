@@ -1,0 +1,145 @@
+
+ 
+
+```{r}
+# FIRST OF ALL WE INSTALL THAT PACKAGE AND WE CALL SENTIMENT.SENTIMENT DATASET INCLUDE POSITIVE AND NEGATIVE WORD.
+
+install.packages("tidytext")
+
+library(tidytext)
+
+sentiments
+
+
+
+```
+
+
+```{r}
+# BING CLASSIFY WORD AS POSITIVE AND NEGATIVE
+get_sentiments("bing")
+
+```
+
+
+```{r}
+library(janeaustenr)
+library(stringr)
+
+# FIRST OF ALL WE INCLUDE IMPORT LIBRARIES AND WE TİDY OPERATION WİTH PIPING IN TEXT.
+# WE CONVERT TEXT INTO TO TİDY FORMAT
+#EACH ROW CONTAIN SINGLE WORD PROVIDE ROW NUMBER FUNCTION.
+#GROUP BY AUSTEN BOOKS
+#FINALLY WITH REGULAR EXPRESSION WE STRING MANIPULATION
+
+ tidy_data <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber=row_number(),
+         chapter=
+  cumsum(str_detect(text,
+  regex("^chapter [\\divxlc]",
+        
+  ignore_case = TRUE)))) %>%
+   ungroup() %>%
+   unnest_tokens(word,text)
+```
+
+
+```{r}
+
+# FIRST OF ALL WE CALL WORD BING.BING CLASSIFY TEXT AS POSITIVE AND NEGATIVE
+# AFTERTHAT WE JUST TAKE POSITIVE WORD IN TEXT
+#WE CHOOSE EMMA BOOK AND WE SORT POSİTİVE WORD IN EMMA BOOKS
+
+positive_senti <-get_sentiments("bing") %>%
+  filter(sentiment=="positive")
+
+tidy_data %>%
+  filter(book=="Emma") %>%
+  semi_join(positive_senti) %>%
+  count(word,sort=TRUE)
+
+
+```
+
+
+```{r}
+
+# FIRST OF ALL SPREAD FUNC PROVIDE EXIT TWO UNIQUE COLUMNS AND THAT OPERATE LIKE GROUP BY THINKING
+#SHORTL,WE CALCULATE TOTAL SENTIMENT AND THE GROUP BY POSITVE AND NEGATIVE AND SHOW 2 UNIQIE COLUMNS
+
+
+library(tidyr)
+bing <- get_sentiments("bing")
+Emma_sentients <- tidy_data %>%
+  inner_join(bing) %>%
+  count(book="Emma",index=linenumber %/% 80,sentiment) %>%
+  spread(sentiment,n,fill=0) %>%
+  mutate(sentiment=positive-negative)
+
+```
+
+
+```{r}
+#WE VISUALIZE WORD IN EMMA WITH POSITIVE AND NEGATIVE SCORES
+
+library(ggplot2)
+
+ggplot(Emma_sentients,aes(index,sentiment,fill=book))+
+  geom_bar(stat="identity",show.legend = TRUE)+
+  facet_wrap(~book,ncol=2,scales="free_x")
+
+
+
+
+
+
+
+
+
+```
+
+
+```{r}
+#  MOST COMMON WORD THAT USE EMMA BOOK WE SORT THAT
+# WE CALL 5 ROW WITH HEAD FUNC
+counting_words <- tidy_data %>%
+  inner_join(bing) %>%
+  count(word,sentiment,sort=TRUE)
+head(counting_words)
+
+```
+
+```{r}
+#WE VISUALIZE THE SENTIMENT IN EMMA BOOK AS POSITIVE AND NEGATIVE SCORE
+
+counting_words %>%
+  filter(n>250) %>%
+  mutate(n=ifelse(sentiment=="negative",-n,n)) %>%
+  mutate(word=reorder(word,n))%>%
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_col()+
+  coord_flip()+
+  labs(y="Sentiment Score")
+```
+
+
+```{r}
+
+#wE PLOT NEGATIVE AND POSITIVE WORD.
+#AS TEST SCORE INCREASE,TEXT SHOW MORE BIGGER THAN OTHER
+
+library(reshape2)
+library(wordcloud)
+tidy_data %>%
+  inner_join(bing) %>%
+  count(word,sentiment,sort=TRUE) %>%
+  acast(word~sentiment,value.var ="n",fill=0) %>%
+  comparison.cloud(colors = c("red","blue"),
+                   max.words = 60)
+
+
+
+```
+
+
